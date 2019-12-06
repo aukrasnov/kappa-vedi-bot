@@ -81,8 +81,7 @@ def remind_about_coffee(user_obj, matches, database: Database, sender: Callable,
         # todo: remember the feedback (with expected_intent)
     elif datetime.today().weekday() == 0:  # monday
         response = 'Напоминаю, что на этой неделе вы пьёте кофе {}.\n'.format(with_whom) + \
-            '\nНадеюсь, вы уже договорились о встрече?	\U0001f609' + \
-            '\n(если в минувшую субботу пришло несколько оповещений о кофе, то действительно только последнее)'
+            '\nНадеюсь, вы уже договорились о встрече?	\U0001f609'
     if response is not None:
         user_in_pb = database.mongo_peoplebook.find_one({'username': user_obj.get('username')})
         if not user_in_pb:
