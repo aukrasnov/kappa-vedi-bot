@@ -28,7 +28,7 @@ bot = telebot.TeleBot(TOKEN)
 server = Flask(__name__)
 
 TELEBOT_URL = 'telebot_webhook/'
-BASE_URL = 'https://kappa-vedi-bot.herokuapp.com/'
+BASE_URL = os.environ.get('BASE_URL')
 
 MONGO_URL = os.environ.get('MONGODB_URI')
 DATABASE = Database(MONGO_URL, admins={
