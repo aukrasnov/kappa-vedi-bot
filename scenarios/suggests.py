@@ -11,6 +11,7 @@ def make_standard_suggests(database, user_object):
 
     if database.is_admin(user_object):
         suggests.append('Создать встречу')
-        suggests.append('Добавить членов')
+        suggests.append('Добавить членов клуба')
+        suggests.append('Добавить членов сообщества')
 
     return suggests
