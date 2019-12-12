@@ -53,7 +53,7 @@ def try_membership_management(ctx: Context, database: Database):
                 resp = resp + '\n@{} успешно добавлен(а) в список членов СООБЩЕСТВА (но не КЛУБА).'.format(login)
         ctx.response = resp
     elif re.match('(добавь|добавить)( нов(ых|ого))? (члена|членов)', ctx.text_normalized):
-        ctx.intent = 'FRIEND_OR_GUEST_ADD_TRY'
+        ctx.intent = 'FRIEND_OR_MEMBER_ADD_TRY'
         ctx.response = 'Напишите "добавить членов клуба", ' \
                        'чтобы добавить членов в Каппа Веди первый (маленькую группу). \n' \
                        'Напишите "добавить членов сообщества", ' \

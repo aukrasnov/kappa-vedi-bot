@@ -121,7 +121,9 @@ def test_basic_responses(mocked_sender, mocked_db, text, expected_intent):
 
 
 @pytest.mark.parametrize("text,expected_intent", [
-    ("добавить членов", "MEMBER_ADD_INIT"),
+    ("добавить новых членов клуба", "MEMBER_ADD_INIT"),
+    ("добавь членов сообщества", "FRIEND_ADD_INIT"),
+    ("добавить членов", "FRIEND_OR_MEMBER_ADD_TRY"),
     ("создать встречу", "EVENT_CREATE_INIT"),
 ])
 def test_admin(mocked_sender, mocked_db, text, expected_intent):
