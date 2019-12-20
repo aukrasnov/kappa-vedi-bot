@@ -1,6 +1,6 @@
 import pymongo
 
-from datetime import datetime, date
+from datetime import datetime
 from typing import Callable
 
 from utils.database import Database
@@ -11,10 +11,16 @@ from scenarios.peoplebook_auth import make_pb_url
 
 from config import ADMIN_UID
 
+import random
 import time
 
 TAKE_PART = 'Участвовать в следующем кофе'
 NOT_TAKE_PART = 'Не участвовать в следующем кофе'
+
+
+INTENT_COFFEE_PUSH_FIRST = 'coffee_push_first'
+INTENT_COFFEE_PUSH_REMIND = 'coffee_push_remind'
+INTENT_COFFEE_PUSH_FEEDBACK = 'coffee_push_feedback'
 
 
 def get_coffee_score(text):
@@ -77,12 +83,15 @@ def remind_about_coffee(user_obj, matches, database: Database, sender: Callable,
     response = None
     if force_restart or datetime.today().weekday() == 5:  # saturday
         response = 'На этой неделе вы пьёте кофе {}.\nЕсли вы есть, будьте первыми!'.format(with_whom)
+        intent = INTENT_COFFEE_PUSH_FIRST
     elif datetime.today().weekday() == 4:  # friday
         response = 'На этой неделе вы, наверное, пили кофе {}.\nКак оно прошло?'.format(with_whom)
+        intent = INTENT_COFFEE_PUSH_FEEDBACK
         # todo: remember the feedback (with expected_intent)
     elif datetime.today().weekday() == 0:  # monday
         response = 'Напоминаю, что на этой неделе вы пьёте кофе {}.\n'.format(with_whom) + \
             '\nНадеюсь, вы уже договорились о встрече?	\U0001f609'
+        intent = INTENT_COFFEE_PUSH_REMIND
     if response is not None:
         user_in_pb = database.mongo_peoplebook.find_one({'username': user_obj.get('username')})
         if not user_in_pb:
@@ -94,7 +103,7 @@ def remind_about_coffee(user_obj, matches, database: Database, sender: Callable,
         from scenarios.suggests import make_standard_suggests
         suggests = make_standard_suggests(database=database, user_object=user_obj)
         sender(user_id=user_id, text=response, database=database, suggests=suggests,
-               reset_intent=True, intent='coffee_push')
+               reset_intent=True, intent=intent)
 
 
 def try_coffee_management(ctx: Context, database: Database):
@@ -116,4 +125,17 @@ def try_coffee_management(ctx: Context, database: Database):
         ctx.the_update = {"$set": {'wants_next_coffee': False}}
         ctx.response = 'Окей, на следующей неделе вы не будете участвовать в random coffee!'
         ctx.intent = 'NOT_TAKE_PART'
+    return ctx
+
+
+def try_coffee_feedback_collection(ctx: Context, database: Database):
+    if not database.is_at_least_guest(user_object=ctx.user_object):
+        return ctx
+    if ctx.last_intent in {INTENT_COFFEE_PUSH_FEEDBACK, INTENT_COFFEE_PUSH_REMIND}:
+        ctx.intent = 'coffee_feedback_probably'
+        ctx.response = random.choice([
+            'Благодарю за обратную связь! \U00002615',
+            'Спасибо за фибдек! Я рад, что вы пользуетесь Random Coffee \U0001F642',
+            'Спасибо, что делитесь своими впечатлениями. Если вы есть, будьте первыми!'
+        ])
     return ctx
