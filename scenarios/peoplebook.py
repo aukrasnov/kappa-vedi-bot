@@ -8,6 +8,7 @@ import os
 
 
 from utils.photo import photo_url_from_message, extract_photo_url_from_text
+from scenarios.peoplebook_auth import make_pb_url
 
 
 class PB:
@@ -42,6 +43,7 @@ def try_peoplebook_management(ctx: Context, database: Database):
         return ctx
     # first process the incoming info
     within = ctx.user_object.get(PB.CREATING_PB_PROFILE)
+    tg_id = ctx.user_object['tg_id']
     if re.match('(покажи )?(мой )?(профиль (в )?)?(пиплбук|peoplebook)', ctx.text_normalized):
         if ctx.user_object.get('username') is None:
             ctx.intent = PB.PEOPLEBOOK_NO_USERNAME
@@ -58,7 +60,7 @@ def try_peoplebook_management(ctx: Context, database: Database):
             ctx.suggests.append('Нет')
         else:
             ctx.intent = PB.PEOPLEBOOK_GET_SUCCESS
-            ctx.response = 'Ваш профиль:\n' + render_text_profile(the_profile, database)
+            ctx.response = 'Ваш профиль:\n' + render_text_profile(the_profile, database, tg_id)
     elif ctx.last_intent == PB.PEOPLEBOOK_GET_FAIL:
         if matchers.is_like_yes(ctx.text_normalized):
             ctx.intent = PB.PEOPLEBOOK_CREATE_PROFILE
@@ -205,16 +207,16 @@ def try_peoplebook_management(ctx: Context, database: Database):
                                       'телеграм, инстаграм, линкедин, фб, вк, почта.'
     elif ctx.expected_intent == PB.PEOPLEBOOK_SHOW_PROFILE:
         the_profile = database.mongo_peoplebook.find_one({'username': ctx.user_object['username']})
-        ctx.response = ctx.response + '\nТак выглядит ваш профиль:\n' + render_text_profile(the_profile, database)
+        ctx.response = ctx.response + '\nТак выглядит ваш профиль:\n' + render_text_profile(
+            the_profile, database, tg_id
+        )
     if ctx.response is not None:
         ctx.response = ctx.response.strip()
     return ctx
 
 
-def render_text_profile(profile, database: Database, editable=True):
+def render_text_profile(profile, database: Database, user_tg_id, editable=True):
     username = profile.get('username', 'does_not_exist')
-    user_tg_id = str(database.mongo_users.find_one({'username': username}).get('tg_id', ''))
-    user_tg_id += os.environ.get('login_salt')
     rows = [
         '<b>{} {}</b>'.format(profile.get('first_name', ''), profile.get('last_name', '')),
         '<b>Чем занимаюсь</b>',
@@ -223,9 +225,9 @@ def render_text_profile(profile, database: Database, editable=True):
         '{}'.format(profile.get('topics', '')),
         '<b>Контакты</b>',
         profile.get('contacts', 't.me/{}'.format(profile.get('username', ''))),
-        '\n<a href="kv-peoplebook.herokuapp.com/login_link?bot_info={}&next=/person/{}">'
-        'Авторизоваться и посмотреть свой профиль</a>'
-            .format(hashlib.md5(user_tg_id.encode('utf-8')).hexdigest(), username),
+        '\n<a href="{}">Авторизоваться и посмотреть свой профиль</a>'.format(
+            make_pb_url('/person/' + username, user_tg_id)
+        )
     ]
     if editable:
         rows.extend([
