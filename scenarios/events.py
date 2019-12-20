@@ -206,9 +206,13 @@ def try_event_usage(ctx: Context, database: Database):
                     }
                 ])
             ]
+        available_events.sort(key=lambda e: e['date'], reverse=True)
+        DETAILED_HEAD_SIZE = 3
+        first_events = available_events[:DETAILED_HEAD_SIZE]
+        last_events = available_events[DETAILED_HEAD_SIZE:]
         if len(available_events) > 0:
             ctx.response = 'Найдены события:\n'
-            for e in available_events:
+            for e in first_events:
                 ctx.response = ctx.response + '/{}: "{}", {}\n'.format(e['code'], e['title'], e['date'])
                 invitation = database.mongo_participations.find_one({'username': ctx.username, 'code': e['code']})
                 if invitation is None or 'status' not in invitation:
@@ -216,6 +220,9 @@ def try_event_usage(ctx: Context, database: Database):
                 else:
                     status = InvitationStatuses.translate_second_person(invitation['status'])
                 ctx.response = ctx.response + '{}\n\n'.format(status)
+            if len(last_events) > 0:
+                last_events_links = ', '.join(['/{}'.format(e['code']) for e in last_events])
+                ctx.response = ctx.response + 'Более старые встречи: {}\n\n'.format(last_events_links)
             ctx.response = ctx.response + 'Кликните по нужной ссылке, чтобы выбрать встречу.'
         elif len(all_events) > 0:
             ctx.response = 'Доступных вам событий не найдено.'
