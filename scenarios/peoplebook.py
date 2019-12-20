@@ -37,6 +37,10 @@ PHOTO_INSTRUCTION = '\nВажно, чтобы лицо было хорошо в�
                     '\nЕщё можно взять ссылку из соцсети: кликнуть правой кнопкой по фото на вашей страничке,' \
                     ' выбрать "Копировать адрес изображения", и прислать скопированное мне.'
 
+RE_PB_INTENT1 = re.compile('(хочу )?(заполнить )?(покажи )?(мой )?(профиль (в )?)?(пиплбуке?|peoplebook)')
+RE_PB_INTENT2 = re.compile('(хочу )?(заполнить )?(покажи )?мой профиль')
+RE_AUTH_INTENT = re.compile('(хочу )?(как )?(мне )?авторизоваться( в (пипл ?буке?|people ?book))?')
+
 
 def try_peoplebook_management(ctx: Context, database: Database):
     if not database.is_at_least_guest(ctx.user_object):
@@ -44,7 +48,8 @@ def try_peoplebook_management(ctx: Context, database: Database):
     # first process the incoming info
     within = ctx.user_object.get(PB.CREATING_PB_PROFILE)
     tg_id = ctx.user_object['tg_id']
-    if re.match('(покажи )?(мой )?(профиль (в )?)?(пиплбук|peoplebook)', ctx.text_normalized):
+    if re.match(RE_PB_INTENT1, ctx.text_normalized) or re.match(RE_PB_INTENT2, ctx.text_normalized) \
+            or re.match(RE_AUTH_INTENT, ctx.text_normalized):
         if ctx.user_object.get('username') is None:
             ctx.intent = PB.PEOPLEBOOK_NO_USERNAME
             ctx.response = 'Чтобы пользоваться пиплбуком, нужно иметь имя пользователя в Телеграме.' \
@@ -61,6 +66,11 @@ def try_peoplebook_management(ctx: Context, database: Database):
         else:
             ctx.intent = PB.PEOPLEBOOK_GET_SUCCESS
             ctx.response = 'Ваш профиль:\n' + render_text_profile(the_profile, database, tg_id)
+            if re.match(RE_AUTH_INTENT, ctx.text_normalized):
+                ctx.response = '<b>Чтобы авторизоваться на сайте пиплбука, перейдите по ссылке ' \
+                               '"Авторизоваться и посмотреть профиль" из этого сообщения. ' \
+                               'Если вы хотите авторизоваться в другом браузере, скопируйте ссылку и вставьте туда.' \
+                               '</b>' + ctx.response
     elif ctx.last_intent == PB.PEOPLEBOOK_GET_FAIL:
         if matchers.is_like_yes(ctx.text_normalized):
             ctx.intent = PB.PEOPLEBOOK_CREATE_PROFILE
