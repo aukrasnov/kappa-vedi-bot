@@ -8,11 +8,10 @@ from datetime import datetime, timedelta
 from typing import Callable
 
 from scenarios.suggests import make_standard_suggests
+from scenarios.peoplebook_auth import make_pb_url
 from utils.database import Database
 from utils.dialogue_management import Context
 from utils import matchers
-
-PEOPLEBOOK_EVENT_ROOT = 'http://kv-peoplebook.herokuapp.com/event/'
 
 
 class InvitationStatuses:
@@ -85,7 +84,7 @@ def is_future_event(event, may_be_today=True):
 
 
 def render_full_event(ctx: Context, database: Database, the_event):
-    response = format_event_description(the_event)
+    response = format_event_description(the_event, user_tg_id=ctx.user_object['tg_id'])
     the_participation = database.mongo_participations.find_one(
         {'username': ctx.user_object['username'], 'code': the_event['code']}
     )
@@ -107,13 +106,13 @@ def render_full_event(ctx: Context, database: Database, the_event):
     return response
 
 
-def make_invitation(invitation, database: Database):
+def make_invitation(invitation, database: Database, user_tg_id):
     r = 'Здравствуйте! Вы были приглашены пользователем @{} на встречу Каппа Веди.\n'.format(invitation['invitor'])
     event_code = invitation.get('code', '')
     the_event = database.mongo_events.find_one({'code': event_code})
     if event_code == '' or the_event is None:
         return 'Я не смог найти встречу, напишите @cointegrated пожалуйста.', 'ERROR', []
-    r = r + format_event_description(the_event)
+    r = r + format_event_description(the_event, user_tg_id=user_tg_id)
     r = r + '\nВы сможете участвовать в этой встрече?'
     suggests = ['Да', 'Нет', 'Пока не знаю']
     intent = EventIntents.INVITE
@@ -122,6 +121,7 @@ def make_invitation(invitation, database: Database):
 
 
 def try_invitation(ctx: Context, database: Database):
+    user_tg_id = ctx.user_object.get('tg_id', '')
     deferred_invitation = database.mongo_participations.find_one(
         {'username': ctx.username, 'status': InvitationStatuses.NOT_SENT}
     )  # todo: check if the event is in the future
@@ -137,13 +137,13 @@ def try_invitation(ctx: Context, database: Database):
             the_peoplebook = database.mongo_peoplebook.find_one({'username': ctx.username})
             if the_peoplebook is None:
                 t = '\nЧтобы встреча прошла продуктивнее, пожалуйста, заполните свою страничку в ' \
-                    + '<a href="{}{}">пиплбуке встречи</a>.'.format(PEOPLEBOOK_EVENT_ROOT, event_code) \
+                    + '<a href="{}">пиплбуке встречи</a>.'.format(make_pb_url('/event/' + event_code, user_tg_id)) \
                     + '\nДля этого, когда будете готовы, напишите мне "мой пиплбук"' \
                     + ' и ответьте на пару вопросов о себе.'\
                     + '\nЕсли вы есть, будьте первыми!'
             else:
                 t = '\nВозможно, вы хотите обновить свою страничку в ' \
-                    + '<a href="{}{}">пиплбуке встречи</a>.'.format(PEOPLEBOOK_EVENT_ROOT, event_code) \
+                    + '<a href="{}{}">пиплбуке встречи</a>.'.format(make_pb_url('/event/' + event_code, user_tg_id)) \
                     + '\nДля этого, когда будете готовы, напишите мне "мой пиплбук"' \
                     + ' и ответьте на пару вопросов о себе.' \
                     + '\nЕсли вы есть, будьте первыми!'
@@ -169,7 +169,7 @@ def try_invitation(ctx: Context, database: Database):
                 {'$set': {'status': new_status}}
             )
     elif deferred_invitation is not None:
-        resp, intent, suggests = make_invitation(deferred_invitation, database=database)
+        resp, intent, suggests = make_invitation(deferred_invitation, database=database, user_tg_id=user_tg_id)
         ctx.response = resp
         ctx.intent = intent
         ctx.suggests.extend(suggests)
@@ -336,8 +336,8 @@ def sent_invitation_to_user(username, event_code, database: Database, sender: Ca
     invitation = database.mongo_participations.find_one({'username': username, 'code': event_code})
     if invitation is None:
         return False
-    text, intent, suggests = make_invitation(invitation=invitation, database=database)
     user_account = database.mongo_users.find_one({'username': username})
+    text, intent, suggests = make_invitation(invitation=invitation, database=database, user_tg_id=user_account['tg_id'])
     if user_account is None:
         return False
     if sender(text=text, database=database, suggests=suggests, user_id=user_account['tg_id']):
@@ -535,13 +535,13 @@ EVENT_EDITION_COMMANDS = '\n'.join(
 )
 
 
-def format_event_description(event_dict):
+def format_event_description(event_dict, user_tg_id):
     result = 'Мероприятие:'
     for field in EVENT_FIELDS:
         if event_dict.get(field.code, '') != '':
             result = result + '\n\t<b>{}</b>: \t{}'.format(field.name, event_dict.get(field.code))
-    result = result + '\n\t<b>пиплбук встречи</b>: <a href="{}{}">ссылка</a>\n'.format(
-        PEOPLEBOOK_EVENT_ROOT, event_dict.get('code')
+    result = result + '\n\t<b>пиплбук встречи</b>: <a href="{}">ссылка</a>\n'.format(
+        make_pb_url('/event/' + event_dict.get('code'), user_tg_id)
     )
     return result
 
@@ -821,7 +821,7 @@ def daily_event_management(database: Database, sender: Callable):
                     user_account.get('first_name', 'товарищ ' + user_account.get('username', 'Анонимус')),
                     event['days_to'] + 1
                 )
-                text = text + format_event_description(event)
+                text = text + format_event_description(event, user_tg_id=user_account['tg_id'])
                 text = text + '\nСоветую вам полистать пиплбук встречи заранее, чтобы нетворкаться на ней эффективнее.'
                 text = text + '\nЕсли вы есть, будьте первыми! \U0001f60e'
                 intent = EventIntents.NORMAL_REMINDER

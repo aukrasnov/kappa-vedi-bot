@@ -7,6 +7,7 @@ from utils.database import Database
 from utils.dialogue_management import Context
 
 from scenarios.coffee_match_maker import generate_good_pairs
+from scenarios.peoplebook_auth import make_pb_url
 
 from config import ADMIN_UID
 
@@ -65,7 +66,7 @@ def remind_about_coffee(user_obj, matches, database: Database, sender: Callable,
     for m in matches:
         in_pb = database.mongo_peoplebook.find_one({'username': m})
         if in_pb:
-            match_texts.append('@{} (<a href="http://kv-peoplebook.herokuapp.com/person/{}">пиплбук</a>)'.format(m, m))
+            match_texts.append('@{} (<a href="{}">пиплбук</a>)'.format(m, make_pb_url('/person/' + m, user_id)))
         else:
             match_texts.append('@{}'.format(m))
 

@@ -8,6 +8,7 @@ import os
 
 
 from utils.photo import photo_url_from_message, extract_photo_url_from_text
+from scenarios.peoplebook_auth import make_pb_url
 
 
 class PB:
@@ -214,7 +215,6 @@ def try_peoplebook_management(ctx: Context, database: Database):
 def render_text_profile(profile, database: Database, editable=True):
     username = profile.get('username', 'does_not_exist')
     user_tg_id = str(database.mongo_users.find_one({'username': username}).get('tg_id', ''))
-    user_tg_id += os.environ.get('login_salt')
     rows = [
         '<b>{} {}</b>'.format(profile.get('first_name', ''), profile.get('last_name', '')),
         '<b>Чем занимаюсь</b>',
@@ -223,9 +223,9 @@ def render_text_profile(profile, database: Database, editable=True):
         '{}'.format(profile.get('topics', '')),
         '<b>Контакты</b>',
         profile.get('contacts', 't.me/{}'.format(profile.get('username', ''))),
-        '\n<a href="kv-peoplebook.herokuapp.com/login_link?bot_info={}&next=/person/{}">'
-        'Авторизоваться и посмотреть свой профиль</a>'
-            .format(hashlib.md5(user_tg_id.encode('utf-8')).hexdigest(), username),
+        '\n<a href="{}">Авторизоваться и посмотреть свой профиль</a>'.format(
+            make_pb_url('/person/' + username, user_tg_id)
+        )
     ]
     if editable:
         rows.extend([
