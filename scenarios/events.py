@@ -667,7 +667,7 @@ def try_event_edition(ctx: Context, database: Database):
         # create the pairs
         random.shuffle(participants)
         pairs = []
-        for i in range(0, len(participants), step=2):
+        for i in range(0, len(participants), 2):
             pairs.append((participants[i], participants[i-1]))
             pairs.append((participants[i-1], participants[i]))
         if len(participants) % 2 == 1 and len(participants) > 1:
