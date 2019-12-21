@@ -684,10 +684,10 @@ def try_event_edition(ctx: Context, database: Database):
                    "Темы для разговора {}\n" \
                    "У вас есть 5 минут на разговор :)\n" \
                    "Приятного общения! Если вы есть, будьте первыми!".format(
-                another['username'],
-                make_pb_url('/person/'+another['username'], user_tg_id=usr['tg_id']),
-                make_pb_url('/similarity/' + one['username'] + '/' + another['username'], user_tg_id=usr['tg_id']),
-            )
+                    another['username'],
+                    make_pb_url('/person/'+another['username'], user_tg_id=usr['tg_id']),
+                    make_pb_url('/similarity/' + one['username'] + '/' + another['username'], user_tg_id=usr['tg_id']),
+                    )
             intent = 'GET_RANDOMWINE_MESSAGE'
             suggests = ['Ясно', 'Спасибо']
             if usr is None:
