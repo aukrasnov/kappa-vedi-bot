@@ -671,7 +671,11 @@ def try_event_edition(ctx: Context, database: Database):
             pairs.append((participants[i], participants[i-1]))
             pairs.append((participants[i-1], participants[i]))
         if len(participants) % 2 == 1 and len(participants) > 1:
+            # it's a triple!
             pairs.append((participants[0], participants[-1]))
+            pairs.append((participants[-1], participants[0]))
+            pairs.append((participants[1], participants[-1]))
+            pairs.append((participants[-1], participants[1]))
         # send everything
         not_sent = []
         for one, another in pairs:
@@ -683,8 +687,10 @@ def try_event_edition(ctx: Context, database: Database):
                    'Пиплбук: <a href="{}">смотреть</a>\n' \
                    'Темы для разговора <a href="{}">смотреть</a>\n' \
                    'У вас есть 5 минут на разговор :)\n' \
-                   'Приятного общения!' \
-                   '\n Если вы есть, будьте первыми!'.format(
+                   'Приятного общения!\n' \
+                   'Если вы есть, будьте первыми!\n\n' \
+                   'P.S.Если вам пришло два сообщения про пары сразу - вы словили редкую удачу, ' \
+                   'и вам предстоит собраться сразу в тройку (:'.format(
                     another['username'],
                     make_pb_url('/person/'+another['username'], user_tg_id=usr['tg_id']),
                     make_pb_url('/similarity/' + one['username'] + '/' + another['username'], user_tg_id=usr['tg_id']),
