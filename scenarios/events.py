@@ -678,12 +678,13 @@ def try_event_edition(ctx: Context, database: Database):
             receiver_username = one['username']
             usr = database.mongo_users.find_one({'username': receiver_username})
 
-            text = "Привет! Вы участвуете в игре (not) random wine" \
-                   "Ваша случайная пара на этот раунд - @{}\n" \
-                   "Пиплбук: {}\n" \
-                   "Темы для разговора {}\n" \
-                   "У вас есть 5 минут на разговор :)\n" \
-                   "Приятного общения! Если вы есть, будьте первыми!".format(
+            text = 'Привет! Вы участвуете в игре (not) random wine\n' \
+                   'Ваша случайная пара на этот раунд - @{}\n' \
+                   'Пиплбук: <a href="{}">смотреть</a>\n' \
+                   'Темы для разговора <a href="{}">смотреть</a>\n' \
+                   'У вас есть 5 минут на разговор :)\n' \
+                   'Приятного общения!' \
+                   '\n Если вы есть, будьте первыми!'.format(
                     another['username'],
                     make_pb_url('/person/'+another['username'], user_tg_id=usr['tg_id']),
                     make_pb_url('/similarity/' + one['username'] + '/' + another['username'], user_tg_id=usr['tg_id']),
