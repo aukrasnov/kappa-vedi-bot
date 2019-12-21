@@ -682,7 +682,7 @@ def try_event_edition(ctx: Context, database: Database):
             receiver_username = one['username']
             usr = database.mongo_users.find_one({'username': receiver_username})
 
-            text = 'Привет! Вы участвуете в игре (not) random wine\n' \
+            text = 'Привет! Вы участвуете в игре (not) Random talk\n' \
                    'Ваша случайная пара на этот раунд - @{}\n' \
                    'Пиплбук: <a href="{}">смотреть</a>\n' \
                    'Темы для разговора <a href="{}">смотреть</a>\n' \
