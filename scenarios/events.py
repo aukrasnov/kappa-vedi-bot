@@ -538,6 +538,7 @@ EVENT_EDITION_COMMANDS = '\n'.join(
         "/invitation_statuses_excel - выгрузить статусы приглашений",
         "/report_others_payment - сообщить о статусе оплаты участника",
         "/broadcast - разослать сообщение всем участникам встречи",
+        "/random_wine - соединить участников встречи в пары и разослать сообщения",
     ]
 )
 
@@ -656,6 +657,57 @@ def try_event_edition(ctx: Context, database: Database):
                            'но в итоге {} не получили сообщение. Им придется написать отдельно'.format(
                             n, ', '.join(['@' + u for u in not_sent])
                             )
+    elif ctx.text == '/random_wine':
+        ctx.intent = 'EVENT_RANDOMWINE'
+        participants = list(database.mongo_participations.find(
+            {'code': event_code, 'status': InvitationStatuses.ACCEPT}
+        ))
+        match_warning = 'Окей, начинаю собирать {} участников в пары, ждите'.format(len(participants))
+        ctx.sender(text=match_warning, database=database, suggests=[], user_id=ctx.user_object['tg_id'])
+        # create the pairs
+        random.shuffle(participants)
+        pairs = []
+        for i in range(0, len(participants), step=2):
+            pairs.append((participants[i], participants[i-1]))
+            pairs.append((participants[i-1], participants[i]))
+        if len(participants) % 2 == 1 and len(participants) > 1:
+            pairs.append((participants[0], participants[-1]))
+        # send everything
+        not_sent = []
+        for one, another in pairs:
+            receiver_username = one['username']
+            usr = database.mongo_users.find_one({'username': receiver_username})
+
+            text = "Привет! Вы участвуете в игре (not) random wine" \
+                   "Ваша случайная пара на этот раунд - @{}\n" \
+                   "Пиплбук: {}\n" \
+                   "Темы для разговора {}\n" \
+                   "У вас есть 5 минут на разговор :)\n" \
+                   "Приятного общения! Если вы есть, будьте первыми!".format(
+                another['username'],
+                make_pb_url('/person/'+another['username'], user_tg_id=usr['tg_id']),
+                make_pb_url('/similarity/' + one['username'] + '/' + another['username'], user_tg_id=usr['tg_id']),
+            )
+            intent = 'GET_RANDOMWINE_MESSAGE'
+            suggests = ['Ясно', 'Спасибо']
+            if usr is None:
+                not_sent.append(receiver_username)
+            else:
+                if ctx.sender(text=text, database=database, suggests=suggests, user_id=usr['tg_id'],
+                              reset_intent=True, intent=intent):
+                    pass
+                else:
+                    not_sent.append(receiver_username)
+        # report
+        n = len(participants)
+        if len(not_sent) == 0:
+            ctx.response = 'Окей. Я позвал на randm wine всех {} подтвержденных участников встречи. ' \
+                           'Вы сами напросились!'.format(n)
+        else:
+            ctx.response = 'Ладно. Я попробовал заматчить всех {} подтвержденных участников, ' \
+                           'но в итоге {} не получили сообщение. Им придется написать отдельно'.format(
+                n, ', '.join(['@' + u for u in not_sent])
+            )
     elif ctx.text == '/remove_event':
         ctx.intent = 'EVENT_REMOVE'
         ctx.expected_intent = 'EVENT_REMOVE_CONFIRM'
