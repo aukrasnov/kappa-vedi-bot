@@ -9,7 +9,7 @@ from utils.dialogue_management import Context
 from scenarios.coffee_match_maker import generate_good_pairs
 from scenarios.peoplebook_auth import make_pb_url
 
-from config import ADMIN_UID
+from config import ADMIN_UID, BATCH_MESSAGE_TIMEOUT
 
 import random
 import time
@@ -63,7 +63,7 @@ def daily_random_coffee(database: Database, sender: Callable, force_restart=Fals
                 )
             else:
                 remind_about_coffee(user_obj, matches, database=database, sender=sender, force_restart=force_restart)
-                time.sleep(0.5)
+                time.sleep(BATCH_MESSAGE_TIMEOUT)
 
 
 def remind_about_coffee(user_obj, matches, database: Database, sender: Callable, force_restart=False):
